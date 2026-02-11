@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from GtkHelper.GtkHelper import better_disconnect
 
 if TYPE_CHECKING:
-    from src.backend.PluginManager.ActionCore import ActionCore
+    from src.streammatrix.backend.PluginManager.ActionCore import ActionCore
 
 from GtkHelper.ScaleRow import ScaleRow as Scale
 
