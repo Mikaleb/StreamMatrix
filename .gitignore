@@ -194,3 +194,7 @@ vid_cache/
 ## Semrel temporary stuff
 .semrel/
 semantic-release
+
+## Idea
+
+.idea/*

@@ -89,20 +89,17 @@ class StoreCache:
         return f"{user}::{repo}::{branch}::{data_type}::{path}"
     
     def get_cache_path(self, url: str, path: str, branch: str = "main", data_type: str = "text") -> str:
-        # return os.path.join(self.files_dir, self.generate_cache_string(url, path, branch, data_type))
-
         cache_string = self.generate_cache_string(url, path, branch, data_type)
-        if cache_string in self.files:
-            return self.files[cache_string].get("path")
-        
-        else:
-            path = os.path.join(self.files_dir, cache_string)
+        path = os.path.join(self.files_dir, cache_string)
+
+        if cache_string not in self.files:
             self.files[cache_string] = {
                 "path": path,
                 "date": time.time()
             }
             self.set_files(self.files)
-            return path
+        
+        return path
     
     def is_cached(self, url: str, path: str, branch: str = "main", data_type: str = "text") -> bool:
         cache_string = self.generate_cache_string(url, path, branch, data_type)

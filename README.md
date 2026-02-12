@@ -9,9 +9,10 @@
 **StreamController** is an elegant Linux application designed for the Elgato Stream Deck, offering advanced features like plug-ins and automatic page switching to enhance your streaming and productivity setup.
 
 ![Main Screen](https://streamcontroller.core447.com/assets/screenshots/main_screen.png)  
-*Background image by [kvacm](https://kvacm.artstation.com)*
+_Background image by [kvacm](https://kvacm.artstation.com)_
 
 ## In Action
+
 [![YouTube](http://i.ytimg.com/vi/kIJOj_6Jimk/hqdefault.jpg)](https://www.youtube.com/watch?v=kIJOj_6Jimk)  
 (click on the image to play)
 
@@ -96,3 +97,46 @@ Thank you to all our contributors for your hard work and support!
 ## Note
 
 This application is unofficial and not affiliated with Elgato.
+
+# Dockerizing StreamMatrix
+
+I have successfully containerized the StreamMatrix application. You can now run it without worrying about local dependencies or environment conflicts.
+
+## Changes Made
+
+- Created [Dockerfile](file:///home/mika/Projects/StreamMatrix/Dockerfile) based on `python:3.12-slim`.
+- Configured system dependencies for GTK4, Adwaita, and USB access.
+- Created [docker-compose.yml](file:///home/mika/Projects/StreamMatrix/docker-compose.yml) to handle:
+  - X11 Display forwarding (GUI support).
+  - DBus session connection (Application communication).
+  - USB Device passthrough (StreamDecks).
+  - User permission mapping (running as non-root).
+
+## How to Run
+
+### 1. Prepare Host Environment
+
+To allow the container to display the GUI on your screen, you need to grant access to the X server:
+
+```bash
+xhost +local:docker
+```
+
+### 2. Connect Hardware
+
+Ensure your StreamDeck(s) are connected.
+
+### 3. Build and Run
+
+Use Docker Compose to start the application:
+
+```bash
+docker compose up --build
+```
+
+The application should appear on your screen. Data will be persisted in the `./data` directory relative to the docker-compose.yml file.
+
+### Troubleshooting
+
+- **Permission Errors**: If you encounter USB permission issues, try adding udev rules on the host or running the container with `privileged: true` (already configured).
+- **GUI Not Showing**: verify `DISPLAY` environment variable is set correctly on your host and passed to the container (configured in docker-compose).

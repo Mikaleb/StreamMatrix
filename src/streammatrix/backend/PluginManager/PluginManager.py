@@ -12,6 +12,26 @@ from streamcontroller_plugin_tools import BackendBase
 
 import globals as gl
 
+# Compatibility shim for legacy plugins
+# This ensures that plugins importing 'src.backend' get the SAME objects (classes, etc.)
+# as the core application using 'src.streammatrix.backend'.
+# We must alias the submodules explicitly because Python caches them independently.
+import globals as gl
+
+# Compatibility shim for legacy plugins
+# We must alias ALL components that plugins import from src.backend
+import src.streammatrix.backend.PluginManager.PluginBase as PB_Module
+import src.streammatrix.backend.PluginManager.ActionHolder as AH_Module
+import src.streammatrix.backend.PluginManager.ActionBase as AB_Module
+import src.streammatrix.backend.PluginManager.EventHolder as EH_Module
+
+sys.modules["src.backend"] = sys.modules["src.streammatrix.backend"]
+sys.modules["src.backend.PluginManager"] = sys.modules["src.streammatrix.backend.PluginManager"]
+sys.modules["src.backend.PluginManager.PluginBase"] = PB_Module
+sys.modules["src.backend.PluginManager.ActionHolder"] = AH_Module
+sys.modules["src.backend.PluginManager.ActionBase"] = AB_Module
+sys.modules["src.backend.PluginManager.EventHolder"] = EH_Module
+
 class PluginManager:
     action_index = {}
     def __init__(self):
