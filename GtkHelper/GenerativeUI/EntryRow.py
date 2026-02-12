@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable
 from GtkHelper.GtkHelper import better_disconnect
 
 if TYPE_CHECKING:
-    from src.streammatrix.backend.PluginManager.ActionCore import ActionCore
+    from src.backend.PluginManager.ActionCore import ActionCore
 
 class EntryRow(GenerativeUI[str]):
     """

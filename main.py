@@ -18,7 +18,7 @@ import setproctitle
 setproctitle.setproctitle("StreamController")
 
 # "install" patches
-from src.streammatrix.patcher.patcher import Patcher
+from src.patcher.patcher import Patcher
 patcher = Patcher()
 patcher.patch()
 
@@ -42,32 +42,32 @@ if not gl.IS_MAC:
     from dbus.mainloop.glib import DBusGMainLoop
 
 # Import own modules
-from src.streammatrix.app import App
-from src.streammatrix.backend.DeckManagement.DeckManager import DeckManager
+from src.app import App
+from src.backend.DeckManagement.DeckManager import DeckManager
 from locales.LocaleManager import LocaleManager
-from src.streammatrix.backend.MediaManager import MediaManager
-from src.streammatrix.backend.AssetManagerBackend import AssetManagerBackend
-from src.streammatrix.backend.PageManagement.PageManagerBackend import PageManagerBackend
-from src.streammatrix.backend.SettingsManager import SettingsManager
-from src.streammatrix.backend.PluginManager.PluginManager import PluginManager
-from src.streammatrix.backend.IconPackManagement.IconPackManager import IconPackManager
-from src.streammatrix.backend.WallpaperPackManagement.WallpaperPackManager import WallpaperPackManager
-from src.streammatrix.backend.SDPlusBarWallpaperPackManagement.SDPlusBarWallpaperPackManager import SDPlusBarWallpaperPackManager
-from src.streammatrix.backend.Store.StoreBackend import StoreBackend, NoConnectionError
+from src.backend.MediaManager import MediaManager
+from src.backend.AssetManagerBackend import AssetManagerBackend
+from src.backend.PageManagement.PageManagerBackend import PageManagerBackend
+from src.backend.SettingsManager import SettingsManager
+from src.backend.PluginManager.PluginManager import PluginManager
+from src.backend.IconPackManagement.IconPackManager import IconPackManager
+from src.backend.WallpaperPackManagement.WallpaperPackManager import WallpaperPackManager
+from src.backend.SDPlusBarWallpaperPackManagement.SDPlusBarWallpaperPackManager import SDPlusBarWallpaperPackManager
+from src.backend.Store.StoreBackend import StoreBackend, NoConnectionError
 from autostart import setup_autostart
-from src.streammatrix.Signals.SignalManager import SignalManager
-from src.streammatrix.backend.WindowGrabber.WindowGrabber import WindowGrabber
-from src.streammatrix.backend.GnomeExtensions import GnomeExtensions
-from src.streammatrix.backend.PermissionManagement.FlatpakPermissionManager import FlatpakPermissionManager
-from src.streammatrix.backend.Wayland.Wayland import Wayland
-from src.streammatrix.backend.LockScreenManager.LockScreenManager import LockScreenManager
-from src.streammatrix.tray import TrayIcon
-from src.streammatrix.backend.Logger import Logger, LoggerConfig, Loglevel
+from src.Signals.SignalManager import SignalManager
+from src.backend.WindowGrabber.WindowGrabber import WindowGrabber
+from src.backend.GnomeExtensions import GnomeExtensions
+from src.backend.PermissionManagement.FlatpakPermissionManager import FlatpakPermissionManager
+from src.backend.Wayland.Wayland import Wayland
+from src.backend.LockScreenManager.LockScreenManager import LockScreenManager
+from src.tray import TrayIcon
+from src.backend.Logger import Logger, LoggerConfig, Loglevel
 
 # Migration
-from src.streammatrix.backend.Migration.MigrationManager import MigrationManager
-from src.streammatrix.backend.Migration.Migrators.Migrator_1_5_0 import Migrator_1_5_0
-from src.streammatrix.backend.Migration.Migrators.Migrator_1_5_0_beta_5 import Migrator_1_5_0_beta_5
+from src.backend.Migration.MigrationManager import MigrationManager
+from src.backend.Migration.Migrators.Migrator_1_5_0 import Migrator_1_5_0
+from src.backend.Migration.Migrators.Migrator_1_5_0_beta_5 import Migrator_1_5_0_beta_5
 
 # Import globals
 import globals as gl

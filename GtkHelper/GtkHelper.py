@@ -17,7 +17,7 @@ from typing_extensions import deprecated
 # Import gtk modules
 import gi
 
-from src.streammatrix.backend.DeckManagement.HelperMethods import open_web
+from src.backend.DeckManagement.HelperMethods import open_web
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
