@@ -1,4 +1,4 @@
-from streammatrix.backend.DeckManagement.DeckController import DeckController
+from src.backend.DeckManagement.DeckController import DeckController
 
 
 class DummyDeck:

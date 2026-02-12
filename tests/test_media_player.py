@@ -1,6 +1,6 @@
 from statistics import median
 import globals as gl
-from streammatrix.backend.DeckManagement.MediaPlayer import MediaPlayerThread
+from src.backend.DeckManagement.MediaPlayer import MediaPlayerThread
 
 
 class DummySettingsManager:

@@ -9,7 +9,7 @@ from gi.repository import Gtk, Adw, Gio, Gdk
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
-    from src.streammatrix.backend.PluginManager.ActionCore import ActionCore
+    from src.backend.PluginManager.ActionCore import ActionCore
 
 class FileDialogRow(GenerativeUI[str]):
     """
