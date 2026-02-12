@@ -13,13 +13,11 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 import gc
-import statistics
 import threading
 import time
 # Import Python modules
 from concurrent.futures import ThreadPoolExecutor
 from copy import copy
-from dataclasses import dataclass
 from queue import Queue
 from threading import Thread, Timer
 
@@ -28,6 +26,7 @@ from PIL import ImageDraw, ImageFont, ImageSequence
 from StreamDeck.Devices import StreamDeck
 from StreamDeck.Devices.StreamDeck import DialEventType, TouchscreenEventType
 from StreamDeck.Devices.StreamDeckPlus import StreamDeckPlus
+from gi.repository import GLib
 from loguru import logger as log
 
 # Import own modules
@@ -35,6 +34,7 @@ from src.streammatrix.backend.DeckManagement.BetterDeck import BetterDeck
 from src.streammatrix.backend.DeckManagement.HelperMethods import *
 from src.streammatrix.backend.DeckManagement.ImageHelpers import *
 from src.streammatrix.backend.DeckManagement.InputIdentifier import Input, InputEvent, InputIdentifier
+from src.streammatrix.backend.DeckManagement.MediaPlayer import MediaPlayerTask, MediaPlayerThread
 from src.streammatrix.backend.DeckManagement.Subclasses.ActionPermissionManager import ActionPermissionManager
 from src.streammatrix.backend.DeckManagement.Subclasses.FakeDeck import FakeDeck
 from src.streammatrix.backend.DeckManagement.Subclasses.KeyImage import InputImage
@@ -48,13 +48,11 @@ from src.streammatrix.backend.PageManagement.Page import ActionOutdated, Page, N
 
 process = psutil.Process()
 
-from gi.repository import GLib
-
 # Import signals
 from src.streammatrix.Signals import Signals
 
 # Import typing
-from typing import TYPE_CHECKING, ClassVar, cast
+from typing import TYPE_CHECKING, cast
 
 from src.streammatrix.windows.mainWindow.elements.KeyGrid import KeyButton, KeyGrid
 from src.streammatrix.backend.PluginManager.ActionCore import ActionCore
@@ -65,246 +63,6 @@ if TYPE_CHECKING:
 # Import globals
 import globals as gl
 
-
-@dataclass
-class MediaPlayerTask:
-    deck_controller: "DeckController"
-    page: Page
-    _callable: callable
-    args: tuple
-    kwargs: dict
-
-    def run(self):
-        self._callable(*self.args, **self.kwargs)
-
-@dataclass
-class MediaPlayerSetTouchscreenImageTask:
-    deck_controller: "DeckController"
-    page: Page
-    native_image: bytes
-
-    n_failed_in_row: ClassVar[dict] = {}
-
-    def run(self):
-        if not self.deck_controller.deck.is_touch():
-            return
-        try:
-            touchscreen_size = self.deck_controller.get_touchscreen_image_size()
-            self.deck_controller.deck.set_touchscreen_image(self.native_image, x_pos=0, y_pos=0, width=touchscreen_size[0], height=touchscreen_size[1]) # Maybe avoid to always merge the dial images before applying it
-            self.native_image = None
-            del self.native_image
-            MediaPlayerSetTouchscreenImageTask.n_failed_in_row = 0
-        except StreamDeck.TransportError as e:
-            log.error(f"Failed to set deck touchscreen image. Error: {e}")
-            MediaPlayerSetTouchscreenImageTask.n_failed_in_row += 1
-            if MediaPlayerSetTouchscreenImageTask.n_failed_in_row > 5:
-                log.debug(f"Failed to set touchscreen image for 5 times in a row for deck {self.deck_controller.serial_number()}. Removing controller")
-                
-                
-                self.deck_controller.deck.close()
-                self.deck_controller.media_player.running = False # Set stop flag - otherwise remove_controller will wait until this task is done, which it never will because it waits
-                gl.deck_manager.remove_controller(self.deck_controller)
-
-                gl.deck_manager.connect_new_decks()
-
-@dataclass
-class MediaPlayerSetImageTask:
-    deck_controller: "DeckController"
-    page: Page
-    key_index: int
-    native_image: bytes
-
-    n_failed_in_row: ClassVar[dict] = {}
-
-    def run(self):
-        try:
-            self.deck_controller.deck.set_key_image(self.key_index, self.native_image)
-            self.native_image = None
-            del self.native_image
-            MediaPlayerSetImageTask.n_failed_in_row[self.deck_controller.serial_number()] = 0
-        except StreamDeck.TransportError as e:
-            log.error(f"Failed to set deck key image. Error: {e}")
-
-            beta_resume = gl.settings_manager.get_app_settings().get("system", {}).get("beta-resume-mode", True)
-            if beta_resume:
-                return
-
-            MediaPlayerSetImageTask.n_failed_in_row[self.deck_controller.serial_number()] += 1
-            if MediaPlayerSetImageTask.n_failed_in_row[self.deck_controller.serial_number()] > 5:
-                log.debug(f"Failed to set key_image for 5 times in a row for deck {self.deck_controller.serial_number()}. Removing controller")
-                
-                
-                self.deck_controller.deck.close()
-                self.deck_controller.media_player.running = False # Set stop flag - otherwise remove_controller will wait until this task is done, which it never will because it waits
-                gl.deck_manager.remove_controller(self.deck_controller)
-
-                gl.deck_manager.connect_new_decks()
-
-
-class MediaPlayerThread(threading.Thread):
-    def __init__(self, deck_controller: "DeckController"):
-        super().__init__(name="MediaPlayerThread", daemon=True)
-        self.deck_controller: DeckController = deck_controller
-        self.FPS = 30 # Max refresh rate of the internal displays
-
-        self.running = False
-        self.media_ticks = 0
-
-        self.pause = False
-        self._stop = False
-
-        self.tasks: list[MediaPlayerTask] = []
-        self.image_tasks = {}
-        self.touchscreen_task = None
-
-        self.fps: list[float] = []
-        self.old_warning_state = False
-
-        self.show_fps_warnings = gl.settings_manager.get_app_settings().get("warnings", {}).get("enable-fps-warnings", True)
-
-    # @log.catch
-    def run(self):
-        self.running = True
-
-        while True:
-            start = time.time()
-
-            # self.check_connection()
-
-            if not self.pause:
-                if self.deck_controller.background.video is not None:
-                    if self.deck_controller.background.video.page is self.deck_controller.active_page:
-                        # There is a background video
-                        video_each_nth_frame = self.FPS // self.deck_controller.background.video.fps
-                        if self.media_ticks % video_each_nth_frame == 0:
-                            self.deck_controller.background.update_tiles()
-
-                #TODO: generalize
-                for key in self.deck_controller.inputs[Input.Key]:
-                    cast("ControllerKey", key).on_media_player_tick()
-
-                for dial in self.deck_controller.inputs[Input.Dial]:
-                    cast("ControllerDial", dial).on_media_player_tick()
-                # self.deck_controller.update_all_inputs()
-
-                # Perform media player tasks
-                self.perform_media_player_tasks()
-
-            self.media_ticks += 1
-
-            # Wait for approximately 1/30th of a second before the next call
-            end = time.time()
-            # print(f"possible FPS: {1 / (end - start)}")
-            self.append_fps(1 / (end - start))
-            self.update_low_fps_warning()
-            wait = max(0, 1/self.FPS - (end - start))
-            time.sleep(wait)
-
-            if self._stop:
-                break
-
-        self.running = False
-
-    def append_fps(self, fps: float) -> None:
-        self.fps.append(fps)
-        if len(self.fps) > self.FPS *2:
-            self.fps.pop(0)
-
-    def get_median_fps(self) -> float:
-        return statistics.median(self.fps)
-    
-    def update_low_fps_warning(self):
-        if not self.show_fps_warnings:
-            return
-        
-        show_warning = self.get_median_fps() < self.FPS * 0.8
-        if self.old_warning_state == show_warning:
-            return
-        self.old_warning_state = show_warning
-
-        self.set_banner_revealed(show_warning)
-
-
-    def set_show_fps_warnings(self, state: bool) -> None:
-        self.show_fps_warnings = state
-        if state:
-            self.old_warning_state = False
-        else:
-            self.set_banner_revealed(False)
-
-    def set_banner_revealed(self, state: bool) -> None:
-        deck_stack_child: "DeckStackChild" = self.deck_controller.get_own_deck_stack_child()
-        if deck_stack_child is None:
-            return
-        
-        # deck_stack_child.low_fps_banner.set_revealed(show_warning)
-        GLib.idle_add(deck_stack_child.low_fps_banner.set_revealed, state)
-
-
-    def stop(self) -> None:
-        self._stop = True
-        while self.running:
-            time.sleep(0.1)
-
-    def add_task(self, method: callable, *args, **kwargs):
-        self.tasks.append(MediaPlayerTask(
-            deck_controller=self.deck_controller,
-            page=self.deck_controller.active_page,
-            _callable=method,
-            args=args,
-            kwargs=kwargs
-        ))
-
-    def add_touchscreen_task(self, native_image: bytes):
-        self.touchscreen_task = MediaPlayerSetTouchscreenImageTask(
-            deck_controller=self.deck_controller,
-            page=self.deck_controller.active_page,
-            native_image=native_image
-        )
-
-    def add_image_task(self, key_index: int, native_image: bytes):
-        self.image_tasks[key_index] = MediaPlayerSetImageTask(
-            deck_controller=self.deck_controller,
-            page=self.deck_controller.active_page,
-            key_index=key_index,
-            native_image=native_image
-        )
-
-    def perform_media_player_tasks(self):
-        for task in self.tasks.copy():
-            if task.page is self.deck_controller.active_page:
-                task.run()
-
-            try:
-                self.tasks.remove(task)
-            except ValueError:
-                pass
-
-        for key in list(self.image_tasks.keys()):
-            try:
-                self.image_tasks[key].run()
-                del self.image_tasks[key]
-            except KeyError:
-                pass
-
-        if self.touchscreen_task is not None:
-            self.touchscreen_task.run()
-            del self.touchscreen_task
-            self.touchscreen_task = None
-    def check_connection(self):
-        try:
-            self.deck_controller.deck.get_firmware_version()
-        except StreamDeck.TransportError as e:
-            log.error(f"Seams like the deck is not connected. Error: {e}")
-            MediaPlayerSetImageTask.n_failed_in_row[self.deck_controller.serial_number()] += 1
-            if MediaPlayerSetImageTask.n_failed_in_row[self.deck_controller.serial_number()] > 5:
-                log.debug(f"Failed to contact the deck 5 times in a row: {self.deck_controller.serial_number()}. Removing controller")
-                
-                self.deck_controller.deck.close()
-                self.deck_controller.media_player.running = False # Set stop flat - otherwise remove_controller will wait until this task is done, which it never will because it waiuts
-                gl.deck_manager.remove_controller(self.deck_controller)
-
-                gl.deck_manager.connect_new_decks()
 
 class DeckController:
     def __init__(self, deck_manager: "DeckManager", deck: StreamDeck.StreamDeck):
