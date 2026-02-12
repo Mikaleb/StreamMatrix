@@ -153,7 +153,7 @@
   min-height: 50px;
 }
 .blue-toggle-button:checked {
-  background-color: @accent_bg_color;
+  background-color: #3584e4;
 }
 .icon-selector-remove-button {
   min-width: 40px;
@@ -322,7 +322,7 @@
 }
 
 .active-border {
-  border: 2px solid @accent_color;
+  border: 2px solid #3584e4;
 }
 
 .page-row-active {
@@ -404,7 +404,7 @@
 }
 
 .action-row-label-toggle-active {
-  background-color: @accent_bg_color;
+  background-color: #3584e4;
   min-width: 5px;
   min-height: 5px;
   border-radius: 99px;
@@ -430,7 +430,11 @@
 }
 
 .destructive-action-on-hover:hover {
-  background-color: @destructive_bg_color;
+  background-color: #c01c28;
+}
+
+.selected {
+  background-color: #283c54;
 }
 
 /*Used as Base for all action chooser items*/
