@@ -43,7 +43,7 @@ class MediaListBox(Gtk.ListBox):
     }
     
     def __init__(self, **kwargs):
-        super().__init__(selection_mode=Gtk.SelectionMode.NONE, css_classes=["boxed-list"], **kwargs)
+        super().__init__(selection_mode=Gtk.SelectionMode.NONE, css_classes=["boxed-list", "medialistbox"], **kwargs)
         
         # Load custom CSS
         css_provider = Gtk.CssProvider()
@@ -530,7 +530,7 @@ class Screensaver(Adw.PreferencesRow):
         self.select_all_button.connect("clicked", self.on_select_all)
         bulk_actions_box.append(self.select_all_button)
 
-        self.clear_selection_button = Gtk.Button(label="Clear Selection")
+        self.clear_selection_button = Gtk.Button(label="Clear Selection", css_classes=["suggested-action"])
         self.clear_selection_button.connect("clicked", self.on_clear_selection)
         bulk_actions_box.append(self.clear_selection_button)
 

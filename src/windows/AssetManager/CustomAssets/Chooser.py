@@ -68,7 +68,7 @@ class CustomAssetChooser(ChooserPage):
         self.select_all_button.connect("clicked", self.on_select_all)
         bulk_actions_box.append(self.select_all_button)
         
-        self.clear_selection_button = Gtk.Button(label="Clear Selection")
+        self.clear_selection_button = Gtk.Button(label="Clear Selection", css_classes=["suggested-action"])
         self.clear_selection_button.connect("clicked", self.on_clear_selection)
         bulk_actions_box.append(self.clear_selection_button)
 
