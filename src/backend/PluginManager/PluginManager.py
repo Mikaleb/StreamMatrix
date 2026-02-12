@@ -12,6 +12,33 @@ from streamcontroller_plugin_tools import BackendBase
 
 import globals as gl
 
+# Compatibility shim for legacy plugins
+# This ensures that plugins importing 'src.backend' get the SAME objects (classes, etc.)
+# as the core application using 'src.backend'.
+# We must alias the submodules explicitly because Python caches them independently.
+import globals as gl
+
+# Compatibility shim for legacy plugins
+# We must alias ALL components that plugins import from src.backend and src.Signals
+import src.backend.PluginManager.PluginBase as PB_Module
+import src.backend.PluginManager.ActionHolder as AH_Module
+import src.backend.PluginManager.ActionBase as AB_Module
+import src.backend.PluginManager.EventHolder as EH_Module
+import src.Signals as Signals_Package
+import src.Signals.Signals as Signals_Module
+
+sys.modules["src.backend"] = sys.modules["src.backend"]
+sys.modules["src.backend.PluginManager"] = sys.modules["src.backend.PluginManager"]
+sys.modules["src.backend.PluginManager.PluginBase"] = PB_Module
+sys.modules["src.backend.PluginManager.ActionHolder"] = AH_Module
+sys.modules["src.backend.PluginManager.ActionBase"] = AB_Module
+sys.modules["src.backend.PluginManager.EventHolder"] = EH_Module
+
+# Legacy plugins may still import from the old 'src.Signals' location.
+# Map that to the new Signals package and module.
+sys.modules["src.Signals"] = Signals_Package
+sys.modules["src.Signals.Signals"] = Signals_Module
+
 class PluginManager:
     action_index = {}
     def __init__(self):

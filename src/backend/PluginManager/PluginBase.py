@@ -140,7 +140,10 @@ class PluginBase(rpyc.Service):
                 log.error(f"Plugin: {self.plugin_name}: Plugin already exists")
                 return
             
-        if self.is_app_version_matching():
+        if self.is_minimum_version_ok():
+            if not self.are_major_versions_matching():
+                log.warning(f"Plugin {self.plugin_name} major version mismatch but minimum version met. Loading anyway.")
+
             # Register plugin
             PluginBase.plugins[self.plugin_id] = {
                 "object": self,

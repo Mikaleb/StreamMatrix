@@ -498,15 +498,27 @@ class PluginActionRow(Adw.ActionRow):
             self.warning_icon.set_tooltip_text(tooltip)
 
     def set_identifier(self, identifier: InputIdentifier):
+        # Determine compatibility, but be lenient for legacy / store plugins
+        # that never declared explicit support for this input type.
+        support_map = getattr(self.action_holder, "action_support", {}) or {}
+        has_explicit_entry = type(identifier) in support_map
+
         action_input_compatibility = self.action_holder.get_input_compatibility(identifier)
 
-        if action_input_compatibility <= ActionInputSupport.UNSUPPORTED:
+        # If the plugin never declared anything for this input type, treat it as UNTESTED
+        # instead of UNSUPPORTED so that older plugins from the store remain usable.
+        if not has_explicit_entry and action_input_compatibility <= ActionInputSupport.UNSUPPORTED:
+            action_input_compatibility = ActionInputSupport.UNTESTED
+
+        if action_input_compatibility <= ActionInputSupport.UNSUPPORTED and has_explicit_entry:
+            # Plugin explicitly marked this input type as unsupported
             self.warning_icon.set_from_icon_name("dialog-error-symbolic")
             self.set_tooltip_text(f"Action is not compatible with {identifier.input_type}")
             self.show_warning(True)
             self.set_sensitive(False)
-            
+
         elif action_input_compatibility == ActionInputSupport.UNTESTED:
+            # Legacy or untested: allow selection but show a warning
             self.warning_icon.set_from_icon_name("dialog-warning-symbolic")
             self.warning_icon.set_tooltip_text(f"Action might not be compatible with {identifier.input_type}")
             self.set_tooltip_text("")
