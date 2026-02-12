@@ -374,9 +374,9 @@ class CustomAssetChooserFlowBox(Gtk.Box):
     def on_child_activated(self, flow_box, child):
         # Handle single selection - close immediately
         if len(self.selected_children) <= 1:
-            if callable(self.asset_chooser.asset_manager.callback_func):
-                callback_thread = threading.Thread(target=self.callback_thread, args=(), name="flow_box_callback_thread")
-                callback_thread.start()
+            # Select the child if it wasn't already selected
+            if child not in self.selected_children:
+                self.select_child(child)
             self.asset_chooser.asset_manager.close()
         # For multiple selections, don't close - let auto-add handle it on window close
 
