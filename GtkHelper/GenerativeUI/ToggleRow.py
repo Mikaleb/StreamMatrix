@@ -10,7 +10,7 @@ from GtkHelper.GtkHelper import better_disconnect
 from GtkHelper.ToggleRow import ToggleRow as Toggle
 
 if TYPE_CHECKING:
-    from src.backend.PluginManager.ActionCore import ActionCore
+    from src.streammatrix.backend.PluginManager.ActionCore import ActionCore
 
 class ToggleRow(GenerativeUI[bool]):
     def __init__(self, action_core: "ActionCore",
